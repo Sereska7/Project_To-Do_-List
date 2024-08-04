@@ -24,11 +24,20 @@ async def task_create(task_in: TaskCreate, user: UserRead) -> TaskCreate:
 
 
 async def get_tasks_by_user_id(user_id: int) -> list[TaskRead]:
+    """
+    Получает список задач для указанного пользователя с проверкой разрешений.
+
+    Проверяет, имеет ли пользователь разрешения на чтение или обновление задачи.
+    Возвращает список задач, к которым пользователь имеет доступ.
+    """
     async with db.session_factory() as session:
         stmt = (
             select(Task)
             .outerjoin(TaskPermission, Task.id == TaskPermission.task_id)
-            .filter((TaskPermission.user_id == user_id) | (Task.user_id == user_id))
+            .filter(
+                (TaskPermission.user_id == user_id)
+                & (TaskPermission.permission == PermissionType.READ)
+                | (Task.user_id == user_id))
             .options(
                 joinedload(Task.pr_task)
             )  # Это загружает разрешения для каждой задачи
@@ -50,28 +59,6 @@ async def get_task_by_id(task_id: int):
         request = select(Task).where(Task.id == task_id)
         tasks = await session.execute(request)
         return tasks.one_or_none()
-
-
-# async def update_tasks(
-#         task_in: TaskCreate,
-#         task_id: int
-# ) -> TaskRead:
-#     async with db.session_factory() as session:
-#         request = (
-#             update(Task)
-#             .where(Task.id == task_id)
-#             .values(
-#                 name_task=task_in.name_task,
-#                 description=task_in.description,
-#                 date_from=task_in.date_from,
-#                 date_to=task_in.date_to
-#             )
-#             .execution_options(synchronize_session="fetch")
-#         )
-#         await session.execute(request)
-#         await session.commit()
-#         up_task = await session.execute(select(Task).where(Task.id == task_id))
-#         return up_task.scalar()
 
 
 async def update_task_with_permission_check(
