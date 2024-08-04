@@ -94,6 +94,7 @@ async def update_task_with_permission_check(
             .filter(
                 (TaskPermission.user_id == user_id)
                 & (TaskPermission.permission == PermissionType.UPDATE)
+                | (Task.user_id == user_id)
             )
             .options(
                 joinedload(Task.pr_task)
