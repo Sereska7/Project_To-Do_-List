@@ -3,6 +3,7 @@ from jose import jwt, ExpiredSignatureError, JWTError
 from pydantic import EmailStr
 
 from app.core.config import settings
+from core.exceptions.errors_user import UserNotFound, InvalidPasswordError, TokenNotFound
 from crud.crud_user import get_user_by_id, get_user_by_email
 from utils.func_by_auth import verify_password
 
@@ -12,11 +13,13 @@ async def authenticate_user(email: EmailStr, password: str):
     Аутентификация пользователя.
 
     Проверяет наличие пользователя с указанным email и соответствие пароля.
-    Если пользователь не найден или пароль не совпадает, выбрасывает HTTPException.
     """
     user = await get_user_by_email(email)
-    if not (user and verify_password(password, user.hash_password)):
-        raise HTTPException(status_code=404, detail="User not found")
+    if not user:
+        raise UserNotFound(f"Пользователь с email: {email} не найден")
+    else:
+        if not verify_password(password, user.hash_password):
+            raise InvalidPasswordError("Пароль не верный.")
     return user
 
 
@@ -26,7 +29,7 @@ def get_token(request: Request):
     """
     token = request.cookies.get("access_token")
     if not token:
-        raise HTTPException(status_code=500, detail="Not token")
+        raise TokenNotFound(f"Токен пользователя не найден")
     return token
 
 
@@ -40,14 +43,11 @@ async def get_current_user(token: str = Depends(get_token)):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
     except ExpiredSignatureError:
-        raise HTTPException(status_code=500, detail="ExpiredSignatureError")
+        raise HTTPException(status_code=500, detail="Срок действия токена истек.")
     except JWTError:
-        raise HTTPException(status_code=500, detail="JWTError")
-    user_id: str = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=404, detail="User_id not found")
-    user = await get_user_by_id(user_id=int(user_id))
+        raise HTTPException(status_code=401, detail="Произошла непредвиденная ошибка.")
+    user = await get_user_by_id(user_id=int(payload.get("sub")))
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден.")
 
     return user

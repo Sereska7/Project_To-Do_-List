@@ -1,7 +1,10 @@
+from pydantic import EmailStr
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.models.model_user import User
 from core.base.db_helper import db_helper as db
+from core.exceptions.errors_user import UserAlreadyExists
 from core.schemas.schemas_user import UserCreate, UserRead
 from utils.func_by_auth import get_password_hash
 
@@ -13,15 +16,21 @@ async def create_user(user_reg: UserCreate) -> UserRead:
     Принимает данные для регистрации пользователя, хеширует пароль,
     создает нового пользователя в базе данных и возвращает информацию о пользователе.
     """
-    async with db.session_factory() as session:
-        new_user = User(
-            email=user_reg.email,
-            hash_password=get_password_hash(user_reg.hash_password),
-        )
-        session.add(new_user)
-        await session.commit()
-        await session.refresh(new_user)
-        return new_user
+    try:
+        async with db.session_factory() as session:
+            new_user = User(
+                email=user_reg.email,
+                hash_password=get_password_hash(user_reg.hash_password),
+            )
+            session.add(new_user)
+            await session.commit()
+            await session.refresh(new_user)
+            return new_user
+    except IntegrityError:
+        await session.rollback()
+        raise UserAlreadyExists(f"Польватель с таким email: {user_reg.email} уже существует")
+    finally:
+        await session.close()
 
 
 async def get_user_by_email(user_email: str) -> UserRead:

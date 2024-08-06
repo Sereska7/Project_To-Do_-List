@@ -1,7 +1,7 @@
 from datetime import date
 
 from typing import TYPE_CHECKING
-from sqlalchemy import Date, ForeignKey, Integer, Enum as SQLEnum
+from sqlalchemy import Date, ForeignKey, Integer, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from enum import Enum
 
@@ -26,12 +26,15 @@ class Task(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="task")
     pr_task: Mapped["TaskPermission"] = relationship(
-        "TaskPermission", back_populates="task_per"
+        "TaskPermission",
+        back_populates="task_per",
+        cascade='all, delete-orphan'
     )
 
 
 class TaskPermission(Base):
-    task_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id"))
+
+    task_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id", ondelete='CASCADE'))
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
 
     user_per: Mapped["User"] = relationship(back_populates="pr_task")
@@ -39,4 +42,8 @@ class TaskPermission(Base):
 
     permission: Mapped[PermissionType] = mapped_column(
         SQLEnum(PermissionType), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint('task_id', 'user_id', 'permission', name='uq_task_user_permission'),
     )

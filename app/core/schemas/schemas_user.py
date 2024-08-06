@@ -10,10 +10,9 @@ class UserCreate(BaseUser):
     pass
 
 
-class UserRead(BaseUser):
+class UserRead(BaseModel):
     id: int
     email: EmailStr
-    hash_password: str
 
 
 class UserUpdate(BaseUser):
