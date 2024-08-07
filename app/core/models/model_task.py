@@ -22,13 +22,17 @@ class Task(Base):
     description: Mapped[str]
     date_from: Mapped[date] = mapped_column(Date)
     date_to: Mapped[date] = mapped_column(Date)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete='CASCADE'))
 
-    user: Mapped["User"] = relationship("User", back_populates="task")
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="task",
+    )
     pr_task: Mapped["TaskPermission"] = relationship(
         "TaskPermission",
+        uselist=False,
         back_populates="task_per",
-        cascade='all, delete-orphan'
+        cascade='all, delete-orphan',
     )
 
 

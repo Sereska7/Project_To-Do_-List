@@ -1,8 +1,8 @@
-"""add unique constraint to TaskPermission
+"""Create tables: users, tasks, taskpermissions
 
-Revision ID: fbe3c6789c75
-Revises: 50ec45ee9afe
-Create Date: 2024-08-05 12:03:14.089409
+Revision ID: 6bc7d8db0639
+Revises: 
+Create Date: 2024-08-07 16:57:06.636447
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'fbe3c6789c75'
-down_revision: Union[str, None] = '50ec45ee9afe'
+revision: str = '6bc7d8db0639'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -34,7 +34,7 @@ def upgrade() -> None:
     sa.Column('date_to', sa.Date(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('taskpermissions',
@@ -42,7 +42,7 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('permission', sa.Enum('READ', 'UPDATE', name='permissiontype'), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['task_id'], ['tasks.id'], ),
+    sa.ForeignKeyConstraint(['task_id'], ['tasks.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('task_id', 'user_id', 'permission', name='uq_task_user_permission')

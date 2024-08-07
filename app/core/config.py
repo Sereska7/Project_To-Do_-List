@@ -11,7 +11,12 @@ class Settings(BaseSettings):
     MODE: Literal["DEV", "TEST", "PROD"]
 
     DB_URL: str
-    TEST_DB_URL: str
+
+    POSTGRES_DB: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+
+    # TEST_DB_URL: str
 
     SECRET_KEY: str
     ALGORITHM: str

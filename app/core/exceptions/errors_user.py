@@ -23,3 +23,8 @@ class InvalidPasswordError(UserError):
 class TokenNotFound(UserError):
     """Ошибка для случая, когда токен не найден."""
     pass
+
+
+class UserHasNoPermission(UserError):
+    """У пользователя нет прав доступа к задаче"""
+    pass

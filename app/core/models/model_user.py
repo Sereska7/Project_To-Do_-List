@@ -13,7 +13,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True)
     hash_password: Mapped[str] = mapped_column(String(255))
 
-    task: Mapped["Task"] = relationship("Task", back_populates="user")
+    task: Mapped["Task"] = relationship(
+        "Task",
+        back_populates="user",
+        cascade='all, delete-orphan'
+    )
     pr_task: Mapped["TaskPermission"] = relationship(
         "TaskPermission", back_populates="user_per"
     )

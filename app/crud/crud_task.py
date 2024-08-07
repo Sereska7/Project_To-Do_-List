@@ -3,12 +3,13 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
-from core.base.db_helper import db_helper as db
-from core.exceptions.errors_task import TaskNotFound, NotOwnerError
-from core.exceptions.general_errors import DataBaseError
-from core.models.model_task import Task, TaskPermission, PermissionType
-from core.schemas.schemas_task import TaskCreate, TaskRead
-from core.schemas.schemas_user import UserRead
+from app.core.base.db_helper import db_helper as db
+from app.core.exceptions.errors_task import TaskNotFound, NotOwnerError
+from app.core.exceptions.general_errors import DataBaseError
+from app.core.models.model_task import Task, TaskPermission, PermissionType
+from app.core.schemas.schemas_task import TaskCreate, TaskRead
+from app.core.schemas.schemas_user import UserRead
+from app.core.exceptions.errors_user import UserHasNoPermission
 
 
 async def task_create(
@@ -31,27 +32,6 @@ async def task_create(
     except IntegrityError:
         await session.rollback()
         raise DataBaseError(f"Ошибка целостности данных.")
-    finally:
-        await session.close()
-
-
-async def get_accessible_tasks(user_id: int, permission: PermissionType) -> list[TaskRead]:
-    async with db.session_factory() as session:
-        stmt = (
-            select(Task)
-            .outerjoin(TaskPermission, Task.id == TaskPermission.task_id)
-            .filter(
-                (TaskPermission.user_id == user_id)
-                & (TaskPermission.permission == permission)
-                | (Task.user_id == user_id))
-            .options(
-                joinedload(Task.pr_task)
-            )  # Это загружает разрешения для каждой задачи
-            .order_by(Task.id)
-        )
-        result = await session.execute(stmt)
-        tasks = result.scalars().all()
-        return tasks
 
 
 async def get_tasks() -> list[TaskRead]:
@@ -63,8 +43,26 @@ async def get_tasks() -> list[TaskRead]:
 async def get_task_by_id(task_id: int):
     async with db.session_factory() as session:
         request = select(Task).where(Task.id == task_id)
-        tasks = await session.execute(request)
-        return tasks.one_or_none()
+        task = await session.execute(request)
+        return task.one_or_none()
+
+
+async def get_accessible_task(user_id: int, permission: PermissionType) -> list[TaskRead]:
+    async with db.session_factory() as session:
+        stmt = (
+            select(Task)
+            .distinct(Task.id)  # Удаляем дубликаты
+            .outerjoin(TaskPermission, Task.id == TaskPermission.task_id)
+            .filter(
+                ((TaskPermission.user_id == user_id) & (TaskPermission.permission == permission.READ))
+                | (Task.user_id == user_id)
+            )
+            .options(joinedload(Task.pr_task))  # Загружаем связанные данные
+            .order_by(Task.id)
+        )
+        result = await session.execute(stmt)
+        tasks = result.scalars().all()
+        return tasks
 
 
 async def update_task_with_permission_check(
@@ -72,13 +70,31 @@ async def update_task_with_permission_check(
     task_id: int,
     task_update: TaskCreate,
 ) -> TaskRead:
-
-    """Обновляет задачу после проверки прав доступа."""
-
-    task = await get_accessible_tasks(user_id, PermissionType.UPDATE)
-    if not task:
-        raise TaskNotFound(f"Задача не найдена")
     async with db.session_factory() as session:
+        # Проверяем, существует ли задача
+        stmt = select(Task).filter(Task.id == task_id)
+        result = await session.execute(stmt)
+        task = result.scalars().one_or_none()
+
+        if not task:
+            raise TaskNotFound(f"Задача с id {task_id} не найдена.")
+
+        # Проверяем права доступа пользователя к задаче
+        stmt = (
+            select(Task)
+            .outerjoin(TaskPermission, Task.id == TaskPermission.task_id)
+            .filter(
+                ((TaskPermission.user_id == user_id)
+                 & (TaskPermission.permission == PermissionType.UPDATE))
+                | (Task.user_id == user_id)
+            )
+            .filter(Task.id == task_id)
+        )
+        result = await session.execute(stmt)
+        accessible_task = result.scalars().one_or_none()
+
+        if not accessible_task:
+            raise UserHasNoPermission(f"У пользователя нет прав на обновление задачи с id {task_id}.")
         # Обновление задачи
         request = (
             update(Task)
@@ -93,13 +109,8 @@ async def update_task_with_permission_check(
         )
         await session.execute(request)
         await session.commit()
-
         up_task = await session.execute(select(Task).where(Task.id == task_id))
-        updated_task = up_task.scalar()
-
-        if not updated_task:
-            raise HTTPException(status_code=404, detail="Task is not found")
-
+        updated_task = up_task.scalars().one()
         return updated_task
 
 

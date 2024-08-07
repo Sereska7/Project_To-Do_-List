@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from core.dependencies.auth_depend import get_current_user
-from core.dependencies.permission_depend import verify_task_owner
-from core.exceptions.errors_permission_task import PermissionAlreadyExists, PermissionNotFound
-from core.exceptions.errors_task import NotOwnerError, TaskNotFound
-from core.exceptions.general_errors import DataBaseError
-from core.models.model_task import PermissionType
-from core.schemas.schemas_permission import TaskPermissionResponse
-from core.schemas.schemas_user import UserRead
-from crud.crud_permission_task import grand_permission, revoke_permission
+from app.core.dependencies.auth_depend import get_current_user
+from app.core.dependencies.permission_depend import verify_task_owner
+from app.core.exceptions.errors_permission_task import PermissionAlreadyExists, PermissionNotFound
+from app.core.exceptions.errors_task import NotOwnerError, TaskNotFound
+from app.core.exceptions.general_errors import DataBaseError
+from app.core.models.model_task import PermissionType
+from app.core.schemas.schemas_permission import TaskPermissionResponse
+from app.core.schemas.schemas_user import UserRead
+from app.crud.crud_permission_task import grand_permission, revoke_permission, get_permission
 
 router = APIRouter(tags=["Permission"])
 
@@ -22,21 +22,31 @@ async def add_permission(
 ) -> TaskPermissionResponse:
     try:
         task = await verify_task_owner(task_id, current_user.id)
-        permission = await grand_permission(
+        permission = await get_permission(
             task_id,
             user_id,
             required_permission,
             current_user.id
         )
-        return permission
+        if permission:
+            raise HTTPException(
+                status_code=404, detail="Права доступа уже выданы пользователю"
+            )
+        new_permission = await grand_permission(
+            task_id,
+            user_id,
+            required_permission,
+            current_user.id
+        )
+        return new_permission
     except NotOwnerError:
         raise HTTPException(status_code=404, detail="Пользователь не являеться создателем задачи")
     except TaskNotFound:
         raise HTTPException(status_code=404, detail="Задача не найдена")
     except PermissionAlreadyExists:
-        raise HTTPException(
-            status_code=404, detail="Права доступа уже выданы пользователю"
-        )
+        raise HTTPException(status_code=404, detail="Права доступа уже выданы пользователю")
+    except DataBaseError:
+        raise HTTPException(status_code=400, detail=f"Ошибка целостности данных.")
 
 
 @router.delete("/tasks/{task_id}/permissions/{user_id}")

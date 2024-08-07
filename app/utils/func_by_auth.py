@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings

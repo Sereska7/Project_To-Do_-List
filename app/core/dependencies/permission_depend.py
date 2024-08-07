@@ -1,9 +1,11 @@
 from fastapi import Depends
+from sqlalchemy.exc import IntegrityError
 
-from core.base.db_helper import db_helper as db
-from core.dependencies.auth_depend import get_current_user
-from core.exceptions.errors_task import TaskNotFound, NotOwnerError
-from core.models.model_task import Task
+from app.core.base.db_helper import db_helper as db
+from app.core.dependencies.auth_depend import get_current_user
+from app.core.exceptions.errors_task import TaskNotFound, NotOwnerError
+from app.core.models.model_task import Task
+from app.core.exceptions.general_errors import DataBaseError
 
 
 async def verify_task_owner(
@@ -23,5 +25,6 @@ async def verify_task_owner(
                 raise TaskNotFound(f"Task with id {task_id} not found")
             if task.user_id != current_user_id:
                 raise NotOwnerError(f"User with id {current_user_id} is not authorized to modify this task")
-        finally:
-            await session.close()
+        except IntegrityError:
+            await session.rollback()
+            raise DataBaseError(f"Ошибка базы данных")

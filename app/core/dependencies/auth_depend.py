@@ -3,9 +3,9 @@ from jose import jwt, ExpiredSignatureError, JWTError
 from pydantic import EmailStr
 
 from app.core.config import settings
-from core.exceptions.errors_user import UserNotFound, InvalidPasswordError, TokenNotFound
-from crud.crud_user import get_user_by_id, get_user_by_email
-from utils.func_by_auth import verify_password
+from app.core.exceptions.errors_user import UserNotFound, InvalidPasswordError, TokenNotFound
+from app.crud.crud_user import get_user_by_id, get_user_by_email
+from app.utils.func_by_auth import verify_password
 
 
 async def authenticate_user(email: EmailStr, password: str):

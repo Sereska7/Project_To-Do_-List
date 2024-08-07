@@ -3,10 +3,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.models.model_user import User
-from core.base.db_helper import db_helper as db
-from core.exceptions.errors_user import UserAlreadyExists
-from core.schemas.schemas_user import UserCreate, UserRead
-from utils.func_by_auth import get_password_hash
+from app.core.base.db_helper import db_helper as db
+from app.core.schemas.schemas_user import UserCreate, UserRead
+from app.utils.func_by_auth import get_password_hash
+from app.core.exceptions.general_errors import DataBaseError
 
 
 async def create_user(user_reg: UserCreate) -> UserRead:
@@ -28,9 +28,7 @@ async def create_user(user_reg: UserCreate) -> UserRead:
             return new_user
     except IntegrityError:
         await session.rollback()
-        raise UserAlreadyExists(f"Польватель с таким email: {user_reg.email} уже существует")
-    finally:
-        await session.close()
+        raise DataBaseError(f"Ошибка целостности данных.")
 
 
 async def get_user_by_email(user_email: str) -> UserRead:
