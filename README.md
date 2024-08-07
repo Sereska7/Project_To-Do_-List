@@ -21,3 +21,10 @@
 ```bash
 git clone https://github.com/Sereska7/Project_To-Do_-List.git
 cd ваш_проект
+```
+
+### Сборка и запуск контейнеров
+
+```bash
+docker-compose up --build
+```
