@@ -9,8 +9,7 @@ from app.core.exceptions.general_errors import DataBaseError
 
 
 async def verify_task_owner(
-    task_id: int,
-    current_user_id: int = Depends(get_current_user)
+    task_id: int, current_user_id: int = Depends(get_current_user)
 ):
     """
     Проверяет, является ли текущий пользователь владельцем задачи.
@@ -24,7 +23,9 @@ async def verify_task_owner(
             if not task:
                 raise TaskNotFound(f"Task with id {task_id} not found")
             if task.user_id != current_user_id:
-                raise NotOwnerError(f"User with id {current_user_id} is not authorized to modify this task")
+                raise NotOwnerError(
+                    f"User with id {current_user_id} is not authorized to modify this task"
+                )
         except IntegrityError:
             await session.rollback()
             raise DataBaseError(f"Ошибка базы данных")

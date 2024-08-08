@@ -22,7 +22,7 @@ class Task(Base):
     description: Mapped[str]
     date_from: Mapped[date] = mapped_column(Date)
     date_to: Mapped[date] = mapped_column(Date)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete='CASCADE'))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
     user: Mapped["User"] = relationship(
         "User",
@@ -32,13 +32,15 @@ class Task(Base):
         "TaskPermission",
         uselist=False,
         back_populates="task_per",
-        cascade='all, delete-orphan',
+        cascade="all, delete-orphan",
     )
 
 
 class TaskPermission(Base):
 
-    task_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id", ondelete='CASCADE'))
+    task_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("tasks.id", ondelete="CASCADE")
+    )
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
 
     user_per: Mapped["User"] = relationship(back_populates="pr_task")
@@ -49,5 +51,7 @@ class TaskPermission(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint('task_id', 'user_id', 'permission', name='uq_task_user_permission'),
+        UniqueConstraint(
+            "task_id", "user_id", "permission", name="uq_task_user_permission"
+        ),
     )

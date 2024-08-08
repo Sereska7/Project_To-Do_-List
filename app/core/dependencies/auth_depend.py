@@ -3,7 +3,11 @@ from jose import jwt, ExpiredSignatureError, JWTError
 from pydantic import EmailStr
 
 from app.core.config import settings
-from app.core.exceptions.errors_user import UserNotFound, InvalidPasswordError, TokenNotFound
+from app.core.exceptions.errors_user import (
+    UserNotFound,
+    InvalidPasswordError,
+    TokenNotFound,
+)
 from app.crud.crud_user import get_user_by_id, get_user_by_email
 from app.utils.func_by_auth import verify_password
 
@@ -29,7 +33,7 @@ def get_token(request: Request):
     """
     token = request.cookies.get("access_token")
     if not token:
-        raise TokenNotFound(f"Токен пользователя не найден")
+        raise HTTPException(status_code=404, detail="Пользователь не аутентифицирован")
     return token
 
 
@@ -42,6 +46,8 @@ async def get_current_user(token: str = Depends(get_token)):
     """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, settings.ALGORITHM)
+    except TokenNotFound:
+        raise HTTPException(status_code=404, detail="Токен пользователя не найден")
     except ExpiredSignatureError:
         raise HTTPException(status_code=500, detail="Срок действия токена истек.")
     except JWTError:

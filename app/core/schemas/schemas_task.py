@@ -22,6 +22,9 @@ class TaskRead(BaseModel):
     date_to: date
     user_id: int
 
+    class Config:
+        from_attributes = True
+
 
 class TaskUpdate(BaseTask):
     pass

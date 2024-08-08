@@ -7,6 +7,8 @@ from app.core.base.db_helper import db_helper as db
 from app.core.schemas.schemas_user import UserCreate, UserRead
 from app.utils.func_by_auth import get_password_hash
 from app.core.exceptions.general_errors import DataBaseError
+from app.core.models.model_task import PermissionType, Task, TaskPermission
+from app.core.exceptions.errors_user import UserHasNoPermission
 
 
 async def create_user(user_reg: UserCreate) -> UserRead:
@@ -43,3 +45,28 @@ async def get_user_by_id(user_id: int) -> UserRead:
         request = select(User.__table__.columns).where(User.id == user_id)
         user = await session.execute(request)
         return user.mappings().one_or_none()
+
+
+async def check_user_permission(
+    user_id: int, task_id: int, permission: PermissionType
+) -> bool:
+    async with db.session_factory() as session:
+        stmt = (
+            select(Task)
+            .outerjoin(TaskPermission, Task.id == TaskPermission.task_id)
+            .filter(
+                (Task.id == task_id)
+                & (
+                    (
+                        (TaskPermission.user_id == user_id)
+                        & (TaskPermission.permission == permission)
+                    )
+                    | (Task.user_id == user_id)
+                )
+            )
+        )
+        result = await session.execute(stmt)
+        task = result.scalars().one_or_none()
+        if not task:
+            raise UserHasNoPermission("У пользователя нет прав доступа к задаче")
+        return task
