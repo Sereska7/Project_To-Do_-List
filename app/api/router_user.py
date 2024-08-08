@@ -27,7 +27,7 @@ async def register_user(user_reg: UserCreate) -> UserRead:
         return new_user
     except UserAlreadyExists:
         raise HTTPException(
-            status_code=400,
+            status_code=409,
             detail="Пользователь с таким адресом электронной почты уже существует",
         )
     except DataBaseError:
