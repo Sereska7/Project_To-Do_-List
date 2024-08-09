@@ -1,4 +1,4 @@
-# FastAPI Project
+# Project_To-Do_List
 
 ## Описание
 
@@ -8,11 +8,12 @@
 
 Проект использует следующие технологии и инструменты:
 
-- [FastAPI](https://fastapi.tiangolo.com/) - современный веб-фреймворк для создания API на Python
+- [FastAPI](https://fastapi.tiangolo.com/) - Современный веб-фреймворк для создания API на Python
+- [PostgreSQL](https://www.postgresql.org/) - СУБД 
 - [SQLAlchemy](https://www.sqlalchemy.org/) - SQL-инструментарий и ORM для Python
 - [JWT](https://jwt.io/) - JSON Web Token для аутентификации
-- [Black](https://github.com/psf/black) - инструмент для форматирования кода
-- [Passlib](https://passlib.readthedocs.io/en/stable/) - библиотека для хеширования паролей
+- [Black](https://github.com/psf/black) - Инструмент для форматирования кода
+- [Passlib](https://passlib.readthedocs.io/en/stable/) - Библиотека для хеширования паролей
 
 ## Установка и запуск
 
